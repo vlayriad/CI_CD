@@ -103,7 +103,6 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME_LOWER }}:latest
 
-
   deploy:
     runs-on: ubuntu-latest
     needs: build
@@ -137,10 +136,26 @@ jobs:
               make env
             fi
 
-            echo "🚀 Start/Restart all containers using Docker Compose"
-            make down
-            make pull
-            make build
+            echo "⬇️ Docker images before pull"
+            sudo docker images
+
+            echo "🚀 Pulling latest image"
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME_LOWER:latest
+
+            echo "⬇️ Docker images after pull"
+            sudo docker images
+
+            echo "🛑 Stop old container"
+            sudo docker stop app_container || true
+            sudo docker rm app_container || true
+
+            echo "🚀 Start new container using Docker Compose"
+            sudo make down
+            sudo make pull
+            sudo make build
+
+            echo "📦 Running containers"
+            sudo docker ps -a
 
             echo "📜 Tail logs (optional)"
-            docker compose logs -f
+            sudo docker compose logs -f
