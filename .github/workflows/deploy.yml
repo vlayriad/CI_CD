@@ -72,7 +72,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y make jq docker.io docker-compose
+          sudo apt install -y make jq
 
       - name: Generate config.json from secret
         run: echo "${{ secrets.ENV_CONF }}" > config.json
