@@ -69,8 +69,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Makefile
-        run: sudo apt install make -y
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y make jq docker.io docker-compose
+
+      - name: Generate config.json from secret
+        run: echo "${{ secrets.ENV_CONF }}" > config.json
+
+      - name: Generate docker-compose.yml from secret
+        run: echo "${{ secrets.DOCKER_COMPOSE }}" > docker-compose.yml
 
       - name: Generate Environment File (optional)
         run: make env
@@ -105,12 +113,6 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_SSH_PORT }}
           script: |
-            echo "🛠️ Deploying application using Docker Compose..."
-            echo "${{ secrets.ENV_CONF }}" > config.json
-            
-            echo "Docker Compose"
-            echo "${{ secrets.DOCKER_COMPOSE }}" > docker-compose.yml
-            
             echo "📁 Ensure project folder exists"
             if [ ! -d "${{ secrets.SERVER_PROJECT_PATH }}" ]; then
               mkdir -p ${{ secrets.SERVER_PROJECT_PATH }}
