@@ -142,24 +142,24 @@ jobs:
             fi
 
             echo "⬇️ Docker images before pull"
-            sudo docker images
+            docker images
 
             echo "🚀 Pulling latest image"
-            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME_LOWER:latest
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME_LOWER:latest
 
             echo "⬇️ Docker images after pull"
-            sudo docker images
+            docker images
 
             echo "🛑 Stop old container"
             make clean || true
 
             echo "🚀 Start new container using Docker Compose"
-            sudo make down
-            sudo make pull
-            sudo make build
+            make down
+            make pull
+            make build
 
             echo "📦 Running containers"
-            sudo docker ps -a
+            docker ps -a
 
             echo "📜 Tail logs (optional)"
-            sudo docker compose logs -f
+            docker compose logs -f
