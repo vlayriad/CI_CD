@@ -101,7 +101,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/$REPO_NAME_LOWER:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.REPO_NAME_LOWER }}:latest
+
 
   deploy:
     runs-on: ubuntu-latest
