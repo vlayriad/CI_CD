@@ -1,0 +1,140 @@
+#name: ci/cd
+#
+#on:
+#  push:
+#    branches:
+#      - main
+#
+#jobs:
+#  build:
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Checkout Repository
+#        uses: actions/checkout@v4
+#
+#      - name: Install Makefile
+#        run: sudo apt install make -y
+#
+#      - name: Generate Environment File
+#        run: make env
+#
+#      - name: Login to DockerHub
+#        uses: docker/login-action@v3
+#        with:
+#          username: ${{ secrets.DOCKERHUB_USERNAME }}
+#          password: ${{ secrets.DOCKERHUB_TOKEN }}
+#
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v3
+#
+#      - name: Build and Push Docker Image
+#        uses: docker/build-push-action@v6
+#        with:
+#          context: .
+#          platforms: linux/amd64,linux/arm64
+#          push: true
+#          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:latest
+#
+#  deploy:
+#    runs-on: ubuntu-latest
+#    needs: build
+#    steps:
+#      - name: Deploy to VPS
+#        uses: appleboy/ssh-action@v1.2.3
+#        with:
+#          host: ${{ secrets.SERVER_HOST }}
+#          username: ${{ secrets.SERVER_USER }}
+#          key: ${{ secrets.SERVER_SSH_KEY }}
+#          port: ${{ secrets.SERVER_SSH_PORT }}
+#          script: |
+#            echo "Pull latest image and restart container..."
+#            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:latest
+#            docker stop app_container || true
+#            docker rm app_container || true
+#            docker run -d --name app_container -p ${{ secrets.APP_EXTERNAL_PORT }}:${{ secrets.APP_INTERNAL_PORT }} ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:latest
+
+name: CI/CD Docker Compose
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Makefile
+        run: sudo apt install make -y
+
+      - name: Generate Environment File (optional)
+        run: make env
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:latest
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.2.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_SSH_PORT }}
+          script: |
+            echo "🛠️ Deploying application using Docker Compose..."
+            echo "${{ secrets.ENV_CONF }}" > config.json
+            
+            echo "Docker Compose"
+            echo "${{ secrets.DOCKER_COMPOSE }}" > docker-compose.yml
+            
+            echo "📁 Ensure project folder exists"
+            if [ ! -d "${{ secrets.SERVER_PROJECT_PATH }}" ]; then
+              mkdir -p ${{ secrets.SERVER_PROJECT_PATH }}
+            fi
+            cd ${{ secrets.SERVER_PROJECT_PATH }}
+
+            echo "📦 Pull latest code"
+            if [ -d ".git" ]; then
+              git reset --hard
+              git clean -fd
+              git pull origin main
+            else
+              git clone git@github.com:${{ github.repository }} .
+            fi
+
+            echo "🧹 Ensure .env exists"
+            if [ ! -f ".env" ]; then
+              make env
+            fi
+
+            echo "🚀 Start/Restart all containers using Docker Compose"
+            make down
+            make pull
+            make build
+
+            echo "📜 Tail logs (optional)"
+            docker compose logs -f

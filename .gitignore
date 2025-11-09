@@ -1,0 +1,11 @@
+# idea
+.idea
+
+# env
+.env
+
+# config
+config.json
+
+# docker-compose
+docker-compose.yml
