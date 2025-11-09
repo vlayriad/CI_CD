@@ -108,6 +108,11 @@ jobs:
     needs: build
 
     steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y make jq
+
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.2.3
         with:
@@ -146,8 +151,7 @@ jobs:
             sudo docker images
 
             echo "🛑 Stop old container"
-            sudo docker stop app_container || true
-            sudo docker rm app_container || true
+            make clean || true
 
             echo "🚀 Start new container using Docker Compose"
             sudo make down
