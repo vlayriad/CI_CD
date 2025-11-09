@@ -1,31 +1,26 @@
-# 1. Build stage
-FROM golang:1.24.6 AS builder
+FROM golang:1.24.6-alpine AS builder
+
+RUN apk add --no-cache git bash
 
 WORKDIR /app
 
-# copy go.mod and go.sum
 COPY go.mod go.sum ./
 RUN go mod download
 
-# copy all source code
 COPY . .
 
-# build the binary
-RUN go build -v -o app main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -v -o app main.go
 
-# 2. Final stage
 FROM alpine:latest
+
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 
-# copy binary from builder
 COPY --from=builder /app/app .
 
-# copy config.json / env if needed
 COPY config.json .
 
-# expose port
 EXPOSE 9000
 
-# run the binary
 CMD ["./app"]
