@@ -92,13 +92,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Set Docker image tag
+        run: echo "IMAGE_TAG=${{ secrets.DOCKERHUB_USERNAME }}/$(echo ${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]'):latest" >> $GITHUB_ENV
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:latest
+          tags: ${{ env.IMAGE_TAG }}
+
 
   deploy:
     runs-on: ubuntu-latest
