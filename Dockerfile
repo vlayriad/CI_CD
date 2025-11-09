@@ -11,7 +11,7 @@ RUN go mod download
 COPY . .
 
 # build the binary
-RUN go build -o app main.go
+RUN go build -v -o app main.go
 
 # 2. Final stage
 FROM alpine:latest
